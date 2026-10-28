@@ -39,7 +39,7 @@
       <div class="hero-inner">
         <div class="hero-copy">
           <p class="location-label"><span class="location-dot"></span> Pahrump, Nevada</p>
-          <h1 id="hero-title">Pahrump<br><em>Realtor</em></h1>
+          <h1 id="hero-title">Pahrump<br><em class="hero-em">Realtor</em></h1>
           <p class="hero-byline">Marci Metzger <span>—</span> The Ridge Realty Group</p>
           <p class="hero-summary">Helping buyers and sellers in many markets since 1995. Now bringing that experience to Southern Nevada.</p>
           <div class="hero-actions">
@@ -114,14 +114,14 @@
         <form class="search-panel" id="property-search">
           <h3>Search listings</h3>
           <div class="search-grid">
-            <label class="search-field search-field-location">Location
-              <select name="location">
+            <label class="search-field search-field-location" for="search-location">Location
+              <select id="search-location" name="location">
                 <option value="pahrump-nv" data-label="Pahrump, NV">Pahrump</option>
                 <option value="las-vegas-nv" data-label="Las Vegas, NV">Las Vegas</option>
               </select>
             </label>
-            <label class="search-field search-field-type">Type
-              <select name="type">
+            <label class="search-field search-field-type" for="search-type">Type
+              <select id="search-type" name="type">
                 <option value="">Any</option>
                 <option value="houses">House</option>
                 <option value="townhomes">Townhome</option>
@@ -129,36 +129,36 @@
                 <option value="land">Land</option>
               </select>
             </label>
-            <label class="search-field search-field-sort">Sort by
-              <select name="sort">
+            <label class="search-field search-field-sort" for="search-sort">Sort by
+              <select id="search-sort" name="sort">
                 <option value="globalrelevanceex">Recommended</option>
                 <option value="days">Newest</option>
                 <option value="pricea">Price: low to high</option>
                 <option value="priced">Price: high to low</option>
               </select>
             </label>
-            <label class="search-field">Bedrooms
-              <select name="beds">
+            <label class="search-field" for="search-beds">Bedrooms
+              <select id="search-beds" name="beds">
                 <option value="">Any number</option>
                 <option value="1">1+</option><option value="2">2+</option>
                 <option value="3">3+</option><option value="4">4+</option>
                 <option value="5">5+</option>
               </select>
             </label>
-            <label class="search-field">Baths
-              <select name="baths">
+            <label class="search-field" for="search-baths">Baths
+              <select id="search-baths" name="baths">
                 <option value="">Any number</option>
                 <option value="1">1+</option><option value="2">2+</option>
                 <option value="3">3+</option><option value="4">4+</option>
               </select>
             </label>
-            <label class="search-field">Min price
-              <input name="minPrice" type="number" min="0" step="5000" inputmode="numeric" placeholder="No minimum">
+            <label class="search-field" for="search-min-price">Min price
+              <input id="search-min-price" name="minPrice" type="number" min="0" step="5000" inputmode="numeric" placeholder="No minimum">
             </label>
-            <label class="search-field">Max price
-              <input name="maxPrice" type="number" min="0" step="5000" inputmode="numeric" placeholder="No maximum">
+            <label class="search-field" for="search-max-price">Max price
+              <input id="search-max-price" name="maxPrice" type="number" min="0" step="5000" inputmode="numeric" placeholder="No maximum">
             </label>
-            <button class="search-submit" type="submit">Search now </button>
+            <button class="search-submit" type="submit" aria-label="Search listings now">Search now</button>
           </div>
           <p class="search-note" id="search-note" aria-live="polite">Search opens Zillow results for the area you choose. <a href="https://www.zillow.com/profile/marcimetzger" target="_blank" rel="noreferrer">View Marci’s current listings</a>.</p>
         </form>
