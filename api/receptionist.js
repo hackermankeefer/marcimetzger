@@ -86,7 +86,7 @@ module.exports = async (req, res) => {
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) return respond(res, 503, { error: "The AI receptionist is not configured yet. Please call Marci at (206) 919-6886 or email marcimetzger@gmail.com." });
 
-  const model = process.env.GEMINI_MODEL || "gemini-3.8-flash";
+  const model = process.env.GEMINI_MODEL || "gemini-3.1-flash-lite";
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(apiKey)}`;
   const payload = JSON.stringify({
     systemInstruction: { parts: [{ text: INSTRUCTIONS }] },
