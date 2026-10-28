@@ -15,13 +15,26 @@
   --serif: "Lusitana", Georgia, serif;
   --sans: "Lato", Arial, sans-serif;
   --page-gutter: clamp(1.2rem, 5vw, 5.25rem);
+  /* Mobile‑first touch‑target token (44×44 px minimum) */
+  --touch-size: 44px;
 }
 * { box-sizing: border-box; }
 
 p { margin: 0 0 1rem; line-height: var(--lh-base, 1.6); }
 html { scroll-behavior: smooth; }
-body { margin: 0; color: var(--ink); background: var(--paper); font-family: var(--sans); font-size: var(--fs-base, clamp(1rem, 0.5vw + 0.9rem, 1.125rem)); line-height: var(--lh-base, 1.6); max-width: 100%; }
-img { display: block; width: 100%; }
+body {
+  margin: 0;
+  color: var(--ink);
+  background: var(--paper);
+  font-family: var(--sans);
+  /* Fluid base type: 14px floor at 320px → 16px at ~960px+ */
+  font-size: clamp(0.875rem, 0.45vw + 0.75rem, 1rem);
+  line-height: var(--lh-base, 1.6);
+  max-width: 100%;
+  /* Safe‑area padding for notches / home indicator */
+  padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+}
+img { display: block; width: 100%; height: auto; object-fit: cover; }
 a { color: inherit; }
 button { font: inherit; }
 :focus-visible { outline: 3px solid var(--accent); outline-offset: 4px; }
@@ -58,8 +71,14 @@ button { font: inherit; }
 
 /* ── 2. Hero ───────────────────────────────────────────────────── */
 .hero {
-  position: relative; height: min(54rem, calc(100svh - 5rem)); min-height: 42rem; max-height: 56rem;
-  overflow: hidden; color: #fff; background: var(--blue-deep);
+  position: relative;
+  height: min(54rem, calc(100svh - 5rem));
+  min-height: 42rem;
+  max-height: 56rem;
+  overflow-x: hidden; /* Prevents horizontal scroll on tiny viewports */
+  overflow-y: hidden;
+  color: #fff;
+  background: var(--blue-deep);
 }
 .hero-image { position: absolute; inset: 0; height: 100%; object-fit: cover; object-position: center 100%; }
 .hero-shade {
@@ -69,20 +88,29 @@ button { font: inherit; }
     linear-gradient(0deg, rgba(5,20,27,.5), transparent 42%);
 }
 .hero-inner { position: relative; width: 100%; height: 100%; padding: clamp(7rem, 14vh, 10rem) var(--page-gutter) clamp(6rem, 10vh, 8rem); display: flex; align-items: flex-end; }
-.hero-copy { width: min(42rem, 68vw); padding: 1rem; }
+.hero-copy { max-width: 28rem; margin: 0 auto; padding: 0 var(--page-gutter); }
 .hero-kicker {
   margin: 0 0 1rem; color: var(--accent); font-size: .78rem; font-weight: 700;
   letter-spacing: .18em; text-transform: uppercase;
 }
 .hero h1 {
-  margin: 0; font: 500 clamp(4.4rem, 7.2vw, 6.75rem)/1.08 var(--serif);
-  letter-spacing: -.04em; color: #fff;
+  margin: 0;
+  font: 500 clamp(2.5rem, 8vw, 4rem)/1.2 var(--serif);
+  letter-spacing: -.04em;
+  color: #fff;
+  line-height: 1.2;
+  margin-bottom: 0.5rem;
 }
 .hero h1 span, .hero h1 em { display: block; }
 .hero h1 em { margin-top: .08em; color: var(--accent); font-style: normal; }
 .hero-byline { margin: 1.1rem 0 .55rem; font-size: 1.05rem; font-weight: 600; color: rgba(255,255,255,.88); }
 .hero-summary { max-width: 33rem; margin: 0; color: rgba(255,255,255,.82); font-size: 1.05rem; line-height: 1.65; }
-.hero-actions { display: flex; flex-wrap: wrap; align-items: flex-start; gap: .9rem; margin-top: 1.8rem; }
+.hero-actions {
+  display: flex;
+  flex-direction: column; /* stack on mobile */
+  gap: 0.75rem;
+  margin-top: 1.8rem;
+}
 .hero-actions .button { min-width: 12.5rem; }
 .hero-place {
   position: absolute; top: 2rem; right: var(--page-gutter); display: grid; gap: .15rem;
@@ -94,8 +122,13 @@ button { font: inherit; }
 
 /* Buttons */
 .button {
-  display: inline-flex; min-height: 3.25rem; align-items: center; justify-content: center;
-  gap: .8rem; padding: .7rem 1.4rem; border: 1.5px solid transparent;
+  display: inline-flex;
+  min-height: var(--touch-size); /* 44×44px touch target */
+  align-items: center;
+  justify-content: center;
+  gap: .8rem;
+  padding: .7rem 1.4rem;
+  border: 1.5px solid transparent;
   text-decoration: none; font-weight: 700; font-size: .95rem;
   transition: background .2s ease, color .2s ease, border-color .2s ease, transform .2s ease;
 }
