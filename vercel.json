@@ -1,0 +1,7 @@
+{
+  "functions": {
+    "api/receptionist.js": {
+      "maxDuration": 30
+    }
+  }
+}
