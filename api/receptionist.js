@@ -86,36 +86,58 @@ module.exports = async (req, res) => {
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) return respond(res, 503, { error: "The AI receptionist is not configured yet. Please call Marci at (206) 919-6886 or email marcimetzger@gmail.com." });
 
-  try {
-    const model = process.env.GEMINI_MODEL || "gemini-3.8-flash";
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(apiKey)}`;
-    const upstream = await fetch(url, {
-      method: "POST",
-      headers: { "x-goog-api-key": apiKey, "Content-Type": "application/json" },
-      body: JSON.stringify({
-        systemInstruction: { parts: [{ text: INSTRUCTIONS }] },
-        contents: input.map((message) => ({
-          role: message.role === "assistant" ? "model" : "user",
-          parts: [{ text: message.content }],
-        })),
-        generationConfig: { maxOutputTokens: 260 },
-      }),
-      signal: AbortSignal.timeout(15000),
-    });
-    const data = await upstream.json();
-    if (!upstream.ok) {
+  const model = process.env.GEMINI_MODEL || "gemini-3.8-flash";
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(apiKey)}`;
+  const payload = JSON.stringify({
+    systemInstruction: { parts: [{ text: INSTRUCTIONS }] },
+    contents: input.map((message) => ({
+      role: message.role === "assistant" ? "model" : "user",
+      parts: [{ text: message.content }],
+    })),
+    generationConfig: { maxOutputTokens: 260 },
+  });
+
+  // Retry up to 3 times with exponential backoff for transient errors (429/5xx)
+  for (let attempt = 0; attempt < 3; attempt++) {
+    try {
+      const upstream = await fetch(url, {
+        method: "POST",
+        headers: { "x-goog-api-key": apiKey, "Content-Type": "application/json" },
+        body: payload,
+        signal: AbortSignal.timeout(15000),
+      });
+      const data = await upstream.json();
+      if (upstream.ok) {
+        const answer = (data.candidates?.[0]?.content?.parts || [])
+          .map((part) => part.text || "")
+          .join("\n")
+          .trim();
+        if (!answer) return respond(res, 502, { error: "The AI receptionist couldn’t prepare a reply. Please try again." });
+        return respond(res, 200, { answer });
+      }
+
+      // If the error is due to high demand (429) or a server error (5xx), and we have retries left, wait and retry
+      const isTransient = upstream.status === 429 || upstream.status >= 500;
+      if (isTransient && attempt < 2) {
+        const delayMs = Math.pow(2, attempt) * 1000; // 1s, 2s
+        console.log(`Gemini API returned ${upstream.status}. Retrying in ${delayMs}ms...`);
+        await new Promise((r) => setTimeout(r, delayMs));
+        continue;
+      }
+
+      // If it's a permanent error or we've exhausted retries, fail now
       console.error("Gemini API error response:", data);
       const detail = data.error?.message || "The AI service encountered an issue.";
       return respond(res, 502, { error: `Gemini API Error: ${detail}` });
+    } catch (err) {
+      if (attempt < 2) {
+        const delayMs = Math.pow(2, attempt) * 1000;
+        console.log(`Fetch error to Gemini API: ${err.message}. Retrying in ${delayMs}ms...`);
+        await new Promise((r) => setTimeout(r, delayMs));
+        continue;
+      }
+      console.error("Fetch error to Gemini API:", err);
+      return respond(res, 502, { error: `Receptionist error: ${err.message || "temporarily unavailable"}` });
     }
-    const answer = (data.candidates?.[0]?.content?.parts || [])
-      .map((part) => part.text || "")
-      .join("\n")
-      .trim();
-    if (!answer) return respond(res, 502, { error: "The AI receptionist couldn’t prepare a reply. Please try again." });
-    return respond(res, 200, { answer });
-  } catch (err) {
-    console.error("Fetch error to Gemini API:", err);
-    return respond(res, 502, { error: `Receptionist error: ${err.message || "temporarily unavailable"}` });
   }
 };
