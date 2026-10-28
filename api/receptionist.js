@@ -88,7 +88,8 @@ module.exports = async (req, res) => {
 
   try {
     const model = process.env.GEMINI_MODEL || "gemini-1.5-flash";
-    const upstream = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`, {
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(apiKey)}`;
+    const upstream = await fetch(url, {
       method: "POST",
       headers: { "x-goog-api-key": apiKey, "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -102,14 +103,19 @@ module.exports = async (req, res) => {
       signal: AbortSignal.timeout(15000),
     });
     const data = await upstream.json();
-    if (!upstream.ok) return respond(res, 502, { error: "The AI receptionist is temporarily unavailable. Please try again or contact Marci directly." });
+    if (!upstream.ok) {
+      console.error("Gemini API error response:", data);
+      const detail = data.error?.message || "The AI service encountered an issue.";
+      return respond(res, 502, { error: `Gemini API Error: ${detail}` });
+    }
     const answer = (data.candidates?.[0]?.content?.parts || [])
       .map((part) => part.text || "")
       .join("\n")
       .trim();
     if (!answer) return respond(res, 502, { error: "The AI receptionist couldn’t prepare a reply. Please try again." });
     return respond(res, 200, { answer });
-  } catch {
-    return respond(res, 502, { error: "The AI receptionist is temporarily unavailable. Please try again or contact Marci directly." });
+  } catch (err) {
+    console.error("Fetch error to Gemini API:", err);
+    return respond(res, 502, { error: `Receptionist error: ${err.message || "temporarily unavailable"}` });
   }
 };
