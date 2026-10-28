@@ -1,5 +1,30 @@
 const menuButton = document.querySelector(".menu-toggle");
 const siteNav = document.querySelector("#site-nav");
+const siteHeader = document.querySelector(".site-header");
+
+let previousScrollY = window.scrollY;
+let scrollFramePending = false;
+window.addEventListener("scroll", () => {
+  if (scrollFramePending) return;
+  scrollFramePending = true;
+
+  requestAnimationFrame(() => {
+    const currentScrollY = window.scrollY;
+    const menuOpen = menuButton?.getAttribute("aria-expanded") === "true";
+    const headerHasFocus = siteHeader?.contains(document.activeElement);
+
+    if (currentScrollY < 96 || menuOpen || headerHasFocus || currentScrollY < previousScrollY - 3) {
+      siteHeader?.classList.remove("is-hidden");
+    } else if (currentScrollY > previousScrollY + 3) {
+      siteHeader?.classList.add("is-hidden");
+    }
+
+    previousScrollY = currentScrollY;
+    scrollFramePending = false;
+  });
+}, { passive: true });
+
+siteHeader?.addEventListener("focusin", () => siteHeader.classList.remove("is-hidden"));
 
 menuButton?.addEventListener("click", () => {
   const open = menuButton.getAttribute("aria-expanded") === "true";
@@ -16,91 +41,7 @@ siteNav?.querySelectorAll("a").forEach((link) => {
   });
 });
 
-const gallery = document.querySelector(".gallery-section");
-const galleryMain = gallery?.querySelector("[data-gallery-main]");
-const galleryThumbs = [...(gallery?.querySelectorAll(".gallery-thumb") || [])];
-const galleryStatus = gallery?.querySelector("[data-gallery-status]");
-const galleryCaption = gallery?.querySelector("[data-gallery-caption]");
-const galleryNext = gallery?.querySelector("[data-gallery-next]");
-const galleryDelay = 6500;
-const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
-let activeGalleryIndex = Math.max(0, galleryThumbs.findIndex((button) => button.getAttribute("aria-pressed") === "true"));
-let galleryTimer;
-let galleryTransition = 0;
-let interactionPaused = false;
-
-function updateSlideshow() {
-  if (!gallery) return;
-  const paused = interactionPaused || document.hidden;
-  clearTimeout(galleryTimer);
-  if (!paused && !reducedMotion.matches) {
-    galleryTimer = setTimeout(() => selectGalleryPhoto(activeGalleryIndex + 1), galleryDelay);
-  }
-}
-
-async function selectGalleryPhoto(index) {
-  if (!galleryThumbs.length || !galleryMain) return;
-  activeGalleryIndex = (index + galleryThumbs.length) % galleryThumbs.length;
-  const selected = galleryThumbs[activeGalleryIndex];
-  const nextSrc = selected.dataset.full;
-  const nextAlt = selected.dataset.alt || "Photo from Marci Metzger’s gallery";
-  const token = ++galleryTransition;
-
-  if (galleryNext && !reducedMotion.matches && galleryMain.src !== nextSrc) {
-    galleryNext.classList.remove("is-visible");
-    galleryNext.src = nextSrc;
-    try {
-      await galleryNext.decode();
-      if (token === galleryTransition) {
-        galleryNext.classList.add("is-visible");
-        await new Promise((resolve) => setTimeout(resolve, 480));
-      }
-    } catch {
-      // Fall back to a direct image swap if the hosted photo cannot be decoded.
-    }
-  }
-  if (token !== galleryTransition) return;
-  galleryMain.src = nextSrc;
-  galleryMain.alt = nextAlt;
-  galleryNext?.classList.remove("is-visible");
-
-  galleryThumbs.forEach((button, buttonIndex) => {
-    const isSelected = buttonIndex === activeGalleryIndex;
-    button.classList.toggle("is-selected", isSelected);
-    button.setAttribute("aria-pressed", String(isSelected));
-  });
-
-  if (galleryStatus) galleryStatus.textContent = `Photo ${activeGalleryIndex + 1} of ${galleryThumbs.length}`;
-  if (galleryCaption) galleryCaption.textContent = selected.dataset.caption || "From Marci’s photo gallery";
-  updateSlideshow();
-}
-
-galleryThumbs.forEach((button, index) => {
-  button.addEventListener("click", () => selectGalleryPhoto(index));
-});
-gallery?.querySelectorAll("[data-gallery-step]").forEach((button) => {
-  button.addEventListener("click", () => selectGalleryPhoto(activeGalleryIndex + Number(button.dataset.galleryStep)));
-});
-gallery?.addEventListener("keydown", (event) => {
-  if (event.key !== "ArrowRight" && event.key !== "ArrowLeft") return;
-  event.preventDefault();
-  selectGalleryPhoto(activeGalleryIndex + (event.key === "ArrowRight" ? 1 : -1));
-});
-gallery?.addEventListener("mouseenter", () => { interactionPaused = true; updateSlideshow(); });
-gallery?.addEventListener("mouseleave", () => { interactionPaused = false; updateSlideshow(); });
-gallery?.addEventListener("focusin", () => { interactionPaused = true; updateSlideshow(); });
-gallery?.addEventListener("focusout", (event) => {
-  if (!gallery.contains(event.relatedTarget)) {
-    interactionPaused = false;
-    updateSlideshow();
-  }
-});
-document.addEventListener("visibilitychange", updateSlideshow);
-reducedMotion.addEventListener?.("change", (event) => {
-  updateSlideshow();
-});
-selectGalleryPhoto(activeGalleryIndex);
-
+// Reviews expand and collapse
 const reviewsGrid = document.querySelector("#client-reviews");
 const reviewsToggle = document.querySelector(".feedback-toggle");
 reviewsToggle?.addEventListener("click", () => {
@@ -109,45 +50,55 @@ reviewsToggle?.addEventListener("click", () => {
 
   const reducedMotionPreference = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   reviewsToggle.setAttribute("aria-expanded", String(!expanded));
-  reviewsToggle.textContent = expanded ? "View All Reviews" : "Show Fewer Reviews";
+  reviewsToggle.textContent = expanded ? "View all reviews" : "Show fewer reviews";
   if (reducedMotionPreference) {
     reviewsGrid.classList.toggle("is-expanded", !expanded);
     return;
   }
 
+  reviewsToggle.disabled = true;
   const startHeight = reviewsGrid.getBoundingClientRect().height;
-  const firstRowHeight = Math.max(...[...reviewsGrid.children].slice(0, 3).map((card) => card.getBoundingClientRect().height));
+  const animateGridToNaturalHeight = (duration) => {
+    reviewsGrid.style.height = "auto";
+    const targetHeight = reviewsGrid.getBoundingClientRect().height;
+    reviewsGrid.style.height = `${startHeight}px`;
+    reviewsGrid.style.overflow = "hidden";
+    void reviewsGrid.offsetHeight;
 
-  reviewsGrid.style.height = `${startHeight}px`;
-  reviewsGrid.style.overflow = "hidden";
-  void reviewsGrid.offsetHeight;
+    const animation = reviewsGrid.animate(
+      [{ height: `${startHeight}px` }, { height: `${targetHeight}px` }],
+      { duration, easing: "cubic-bezier(.2,.7,.2,1)" }
+    );
+    animation.onfinish = () => {
+      reviewsGrid.style.height = "";
+      reviewsGrid.style.overflow = "";
+      reviewsToggle.disabled = false;
+    };
+  };
 
   if (expanded) {
     reviewsGrid.classList.add("is-collapsing");
-    reviewsGrid.style.transition = "height 380ms cubic-bezier(.2,.7,.2,1)";
-    requestAnimationFrame(() => { reviewsGrid.style.height = `${firstRowHeight}px`; });
+    window.setTimeout(() => {
+      reviewsGrid.classList.remove("is-expanded", "is-collapsing");
+      animateGridToNaturalHeight(380);
+    }, 200);
   } else {
     reviewsGrid.classList.add("is-expanded");
-    const endHeight = reviewsGrid.scrollHeight;
-    reviewsGrid.style.transition = "height 480ms cubic-bezier(.2,.7,.2,1)";
-    requestAnimationFrame(() => { reviewsGrid.style.height = `${endHeight}px`; });
+    animateGridToNaturalHeight(480);
   }
-
-  reviewsToggle.disabled = true;
-
-  const finishTransition = () => {
-    reviewsGrid.classList.toggle("is-expanded", !expanded);
-    reviewsGrid.classList.remove("is-collapsing");
-    reviewsGrid.style.height = "";
-    reviewsGrid.style.overflow = "";
-    reviewsGrid.style.transition = "";
-    reviewsToggle.disabled = false;
-  };
-
-  setTimeout(finishTransition, expanded ? 400 : 500);
 });
 
 const propertySearch = document.querySelector("#property-search");
+const advancedToggle = document.querySelector(".search-advanced-toggle");
+const advancedRow = document.querySelector(".search-row-advanced");
+
+advancedToggle?.addEventListener("click", () => {
+  const isExpanded = advancedToggle.getAttribute("aria-expanded") === "true";
+  advancedToggle.setAttribute("aria-expanded", String(!isExpanded));
+  advancedToggle.textContent = isExpanded ? "Show filters" : "Hide filters";
+  if (advancedRow) advancedRow.hidden = isExpanded;
+});
+
 propertySearch?.addEventListener("submit", (event) => {
   event.preventDefault();
   const form = new FormData(propertySearch);
